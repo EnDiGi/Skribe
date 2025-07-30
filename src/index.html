@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personal diary</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tauri-apps/api@1.6.0/dist/index.umd.js"></script>
+    <script type="module" src="/main.js" defer></script>
+</head>
+
+<body>
+
+    <div id="titlebar">
+        <span id = "icon-title-section">
+            <img srcset="assets/icon.svg, assets/icon.ico" width="18" id="app-icon">
+            Skribe
+        </span>
+        <span id="window-buttons">
+            <button onclick="minimizeWindow()">
+                ―
+            </button>
+            <button onclick="toggleMaximize()">
+                <img src = "assets/window-buttons/square.svg">
+            </button>
+            <button onclick="closeWindow()">
+                <img src = "assets/window-buttons/x.svg">
+            </button>
+        </span>
+    </div>
+
+    <main>
+        <div id="page-content">
+            <div id="raw-text">
+                <div contenteditable="true" class="editable" id="page-title" data-placeholder="Enter your title here">                </div>
+                <textarea contenteditable="true" class="editable" id="raw-content" data-placeholder="Enter page content"></textarea>
+            </div>
+            <div id="markdown-preview"></div>
+        </div>
+    </main>
+
+    <div id="status-bar">
+        <span id = "status-bar-components">
+            <span id = "char-count">0 characters</span>|
+            <span id = "word-count">0 words</span>|
+            <span id = "line-count">0 lines</span>|
+            <span id = "view-mode">Raw mode</span>
+        </span>
+    </div>
+</body>
+
+</html>
