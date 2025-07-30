@@ -7,18 +7,15 @@ const breakpointWidth = 600;
 
 window.page = {
     "title": "",
-    "rawText": ""
+    "rawText": "",
+    "path": "",
+    "saved": false
 }
-
-let currentFilePath = ""
 
 let viewMode = "both"
 
 const rawContentElement = document.getElementById("raw-content");
 const markdownPreviewElement = document.getElementById("markdown-preview");
-const titleElement = document.getElementById("page-title")
-const rawTextElement = document.getElementById("raw-text")
-
 
 
 window.closeWindow = async function () {
@@ -43,25 +40,22 @@ window.toggleMaximize = async function () {
 }
 
 function updateStatusBar() {
+    
+    document.getElementById("file-path").textContent = page.path == "" ? "No file path" : page.path.split(/[/\\]/).pop()
+    
+    document.getElementById("file-saved").textContent = page.saved ? "Saved" : page.saved == false ? "Unsaved changes" : "Saving..."
+    const formattedText = rawContentElement.value
+    .trim()
+    .replace(/( |\t)+/g, " ")
+    .replace(/(\n|\r)+/g, "\n")
 
     const characters = rawContentElement.value.length;
-    document.getElementById("char-count").textContent = `${characters} characters`;
-
-    const formattedText = rawContentElement.value
-        .trim()
-        .replace(/( |\t)+/g, " ")
-        .replace(/(\n|\r)+/g, "\n")
-
+    
     const words = formattedText
-        .split(" ")
+        .split(/\s/)
         .filter(el => el.trim() !== "")
         .length;
-    document.getElementById("word-count").textContent = `${words} words`;
-
-    const lines = formattedText
-        .split("\n")
-        .filter(el => el.trim() !== "").length;
-    document.getElementById("line-count").textContent = `${lines} lines`;
+    document.getElementById("text-summary").textContent = `${words}w | ${characters}ch`;
 }
 
 
@@ -96,13 +90,13 @@ function changeView(newView) {
     if (window.innerWidth < breakpointWidth && newView === "both") viewMode = "raw"
 
     if (viewMode == "raw") {
-        toggleVisibility(rawTextElement, true)
+        toggleVisibility(rawContentElement, true)
         toggleVisibility(markdownPreviewElement, false)
     } else if (viewMode == "md") {
-        toggleVisibility(rawTextElement, false)
+        toggleVisibility(rawContentElement, false)
         toggleVisibility(markdownPreviewElement, true)
     } else if (viewMode == "both") {
-        toggleVisibility(rawTextElement, true)
+        toggleVisibility(rawContentElement, true)
         toggleVisibility(markdownPreviewElement, true)
     }
     refresh()
@@ -112,10 +106,9 @@ function changeView(newView) {
 
 function refreshPage() {
 
-    page.title = titleElement.textContent
     page.rawText = rawContentElement.value;
 
-    const markdown = marked.parse("# " + page.title + "  \n" + page.rawText);
+    const markdown = marked.parse(page.rawText);
     console.log("marldown: ", markdown)
     markdownPreviewElement.innerHTML = markdown;
 }
@@ -137,6 +130,8 @@ function refresh(inverse = false) {
 
 window.addEventListener("DOMContentLoaded", () => {
 
+    rawContentElement.focus()
+
     if (window.innerWidth < breakpointWidth && viewMode == "both") {
         changeView("raw")
     }
@@ -147,16 +142,11 @@ window.addEventListener("DOMContentLoaded", () => {
         }
     })
 
-    titleElement.textContent = "";
     rawContentElement.innerHTML = "";
-
-    titleElement.addEventListener("keypress", (e) => {
-        if (e.key === "Enter")
-            e.preventDefault();
+    rawContentElement.addEventListener("input", () => {
+        page.saved = false
+        refresh();
     })
-
-    titleElement.addEventListener("input", refresh)
-    rawContentElement.addEventListener("input", refresh)
 
     window.addEventListener('keydown', async function (event) {
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
@@ -181,14 +171,6 @@ window.addEventListener("DOMContentLoaded", () => {
                 changeView("raw")
             }
         }
-        else if (event.key === 'Tab') {
-            event.preventDefault()
-            if (this.document.activeElement == rawContentElement) {
-                titleElement.focus()
-            } else {
-                rawContentElement.focus()
-            }
-        }
     });
 
     refresh()
@@ -196,23 +178,23 @@ window.addEventListener("DOMContentLoaded", () => {
 
 
 window.saveFile = async function (saveAs = false) {
-    if (page.title.trim() === "") {
-        newToast("Can't save a file without a title")
-        return
-    }
+
+    page.saved = null
+    updateStatusBar()
 
     // Saves without opening the dialog
-    if (currentFilePath !== "" && !saveAs) {
-        console.log("currentfilepath:", currentFilePath)
+    if (page.path !== "" && !saveAs) {
+        console.log("page.path:", page.path)
         try {
             const res = await invoke("save_file", {
-                "pageAttr": {
-                    "title": page.title,
-                    "raw_text": page.rawText
-                }, "filePath": currentFilePath
+                "content": page.rawText, 
+                "filePath": page.path
             });
+            newToast("File saved!")
+            page.saved = true
+            updateStatusBar()
         } catch (e) {
-            console.error("Invoke error:", e)
+            newToast("Error saving file")
         }
         return
     }
@@ -228,17 +210,20 @@ window.saveFile = async function (saveAs = false) {
         });
         if (path && path.trim() !== "") {
             const res = await invoke("save_file", {
-                "pageAttr": {
-                    "title": page.title,
-                    "raw_text": page.rawText
-                }, "filePath": path
+                "content": page.rawText, 
+                "filePath": path
             });
-            currentFilePath = path
+            newToast("File saved!")
+            page.saved = true
+            page.path = path
+            updateStatusBar()
         }
 
     } catch (e) {
-        console.error("Invoke error:", e);
+        newToast("Error saving file");
     }
+
+    updateStatusBar()
 }
 
 window.openFile = async function () {
@@ -252,14 +237,13 @@ window.openFile = async function () {
         })
         console.log("open file path " + path);
         if (path && path.trim() !== "") {
-            const pageAttributes = await invoke("read_file", {
+            const content = await invoke("read_file", {
                 "filePath": path
             });
-            currentFilePath = path
+            page.path = path
+            page.saved = true;
 
-            page.title = pageAttributes[0];
-            page.rawText = pageAttributes[1];
-            titleElement.textContent = page.title
+            page.rawText = content;
             rawContentElement.value = page.rawText
             refresh()
         }
@@ -267,13 +251,15 @@ window.openFile = async function () {
     } catch (e) {
         console.error("Invoke error:", e);
     }
+
+    updateStatusBar()
 }
 
 window.newFile = function () {
-    page.title = ""
     page.rawText = ""
+    page.saved = true
     rawContentElement.value = ""
-    titleElement.textContent = ""
     markdownPreviewElement.innerHTML = ""
-    currentFilePath = ""
+    page.path = ""
+    updateStatusBar()
 }

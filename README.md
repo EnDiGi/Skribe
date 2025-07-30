@@ -1,5 +1,6 @@
 # Skribe
-A mimalistic note app
+
+A mimalistic note app with markdown support
 
 # Keyboard Shortcuts
 - Ctrl+S saves the file

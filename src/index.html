@@ -33,19 +33,16 @@
 
     <main>
         <div id="page-content">
-            <div id="raw-text">
-                <div contenteditable="true" class="editable" id="page-title" data-placeholder="Enter your title here">                </div>
-                <textarea contenteditable="true" class="editable" id="raw-content" data-placeholder="Enter page content"></textarea>
-            </div>
+            <textarea contenteditable="true" class="editable" id="raw-content" data-placeholder="Enter page content"></textarea>
             <div id="markdown-preview"></div>
         </div>
     </main>
 
     <div id="status-bar">
         <span id = "status-bar-components">
-            <span id = "char-count">0 characters</span>|
-            <span id = "word-count">0 words</span>|
-            <span id = "line-count">0 lines</span>|
+            <span id = "file-path">No file path</span>|
+            <span id = "file-saved"></span>|
+            <span id = "text-summary">0w / 0ch</span>|
             <span id = "view-mode">Raw mode</span>
         </span>
     </div>
