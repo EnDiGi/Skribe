@@ -9,6 +9,7 @@ window.page = {
     "title": "",
     "rawText": "",
     "path": "",
+    "extension": "md",
     "saved": false
 }
 
@@ -40,17 +41,17 @@ window.toggleMaximize = async function () {
 }
 
 function updateStatusBar() {
-    
+
     document.getElementById("file-path").textContent = page.path == "" ? "No file path" : page.path.split(/[/\\]/).pop()
-    
+
     document.getElementById("file-saved").textContent = page.saved ? "Saved" : page.saved == false ? "Unsaved changes" : "Saving..."
     const formattedText = rawContentElement.value
-    .trim()
-    .replace(/( |\t)+/g, " ")
-    .replace(/(\n|\r)+/g, "\n")
+        .trim()
+        .replace(/( |\t)+/g, " ")
+        .replace(/(\n|\r)+/g, "\n")
 
     const characters = rawContentElement.value.length;
-    
+
     const words = formattedText
         .split(/\s/)
         .filter(el => el.trim() !== "")
@@ -92,12 +93,14 @@ function changeView(newView) {
     if (viewMode == "raw") {
         toggleVisibility(rawContentElement, true)
         toggleVisibility(markdownPreviewElement, false)
+        rawContentElement.focus()
     } else if (viewMode == "md") {
         toggleVisibility(rawContentElement, false)
         toggleVisibility(markdownPreviewElement, true)
     } else if (viewMode == "both") {
         toggleVisibility(rawContentElement, true)
         toggleVisibility(markdownPreviewElement, true)
+        rawContentElement.focus()
     }
     refresh()
     document.getElementById("view-mode").textContent = `View mode: ${viewMode}`
@@ -109,7 +112,6 @@ function refreshPage() {
     page.rawText = rawContentElement.value;
 
     const markdown = marked.parse(page.rawText);
-    console.log("marldown: ", markdown)
     markdownPreviewElement.innerHTML = markdown;
 }
 
@@ -161,7 +163,7 @@ window.addEventListener("DOMContentLoaded", () => {
             event.preventDefault();
             newFile()
         }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'e') {
+        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'e' && page.extension == "md") {
             event.preventDefault();
             if (viewMode == "raw") {
                 changeView("md")
@@ -187,12 +189,16 @@ window.saveFile = async function (saveAs = false) {
         console.log("page.path:", page.path)
         try {
             const res = await invoke("save_file", {
-                "content": page.rawText, 
+                "content": page.rawText,
                 "filePath": page.path
             });
             newToast("File saved!")
             page.saved = true
+            if(page.extension == "txt") {
+                changeView("raw")
+            }
             updateStatusBar()
+            refresh()
         } catch (e) {
             newToast("Error saving file")
         }
@@ -204,23 +210,36 @@ window.saveFile = async function (saveAs = false) {
             filters: [
                 {
                     name: 'Markdown',
-                    extensions: ['md', 'markdown'],
+                    extensions: ['md', 'markdown', 'txt'],
                 },
             ],
         });
+
+        // If the path exists
         if (path && path.trim() !== "") {
             const res = await invoke("save_file", {
-                "content": page.rawText, 
+                "content": page.rawText,
                 "filePath": path
             });
             newToast("File saved!")
+            page.extension = path.split(".").pop()
             page.saved = true
             page.path = path
-            updateStatusBar()
+
+            if(page.extension == "txt") {
+                console.log("change view to raw")
+                changeView("raw")
+            }
+            refresh()
+        }
+        else {
+            // No path selected
+            page.saved = false
         }
 
     } catch (e) {
         newToast("Error saving file");
+        page.saved = false
     }
 
     updateStatusBar()
@@ -233,7 +252,7 @@ window.openFile = async function () {
         const path = await tauri.dialog.open({
             "multiple": false,
             "directory": false,
-            "extensions": ["md", "markdown"]
+            "extensions": ["md", "markdown", 'txt']
         })
         console.log("open file path " + path);
         if (path && path.trim() !== "") {
@@ -241,10 +260,15 @@ window.openFile = async function () {
                 "filePath": path
             });
             page.path = path
+            page.extension = path.split(".").pop()
             page.saved = true;
-
             page.rawText = content;
             rawContentElement.value = page.rawText
+
+            if(page.extension == "txt") {
+                console.log("change to raw")
+                changeView("raw")
+            }
             refresh()
         }
 
@@ -258,8 +282,10 @@ window.openFile = async function () {
 window.newFile = function () {
     page.rawText = ""
     page.saved = true
+    page.extension = "md"
     rawContentElement.value = ""
     markdownPreviewElement.innerHTML = ""
     page.path = ""
+    refresh()
     updateStatusBar()
 }
