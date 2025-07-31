@@ -35,6 +35,7 @@ body {
     justify-content: space-between;
     padding: 2px;
     margin: 0;
+    font-size: 0.9em;
     -webkit-app-region: drag;
     user-select: none;
 
