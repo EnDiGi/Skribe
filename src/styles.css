@@ -152,6 +152,9 @@ body {
     color: gray;
     text-align: right;
     font-size: 0.75rem;
+    background-color: var(--background-purple);
+    padding-top : 3px;
+    padding-left : 3px;
 }
 
 #status-bar-components {
